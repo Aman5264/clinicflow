@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+
+{% block title %}Patient Profile - {{ patient.patient_code }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{{ url_for('patients.index') }}">Patients</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ patient.patient_code }}</li>
+            </ol>
+        </nav>
+        <h2 class="fw-bold mb-0">
+            {{ patient.full_name }}
+            {% if patient.is_archived %}
+                <span class="badge bg-secondary fs-6 align-middle"><i class="bi bi-archive me-1"></i>Archived</span>
+            {% else %}
+                <span class="badge bg-success fs-6 align-middle"><i class="bi bi-check-circle me-1"></i>Active</span>
+            {% endif %}
+        </h2>
+    </div>
+
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('patients.edit', patient_id=patient.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-pencil me-1"></i> Edit Profile
+        </a>
+        {% if patient.is_archived %}
+            <form method="POST" action="{{ url_for('patients.restore', patient_id=patient.id) }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-success" onclick="return confirm('Restore this patient to active records?');">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> Restore Record
+                </button>
+            </form>
+        {% else %}
+            <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#archiveModal">
+                <i class="bi bi-archive me-1"></i> Archive Record
+            </button>
+        {% endif %}
+    </div>
+</div>
+
+{% if patient.is_archived and patient.archive_reason %}
+<div class="alert alert-secondary border d-flex align-items-center mb-4">
+    <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+    <div>
+        <strong>Archived Record:</strong> Reason noted: <em>"{{ patient.archive_reason }}"</em>
+    </div>
+</div>
+{% endif %}
+
+<div class="row g-4">
+    <!-- Patient Demographics Card -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3 fw-bold">
+                <i class="bi bi-person-badge text-primary me-2"></i>Demographics & Contact
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="text-muted small d-block">Patient ID Code</label>
+                    <span class="font-monospace fw-bold fs-6">{{ patient.patient_code }}</span>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small d-block">Age / Date of Birth</label>
+                    <span class="fw-semibold">{{ patient.age }} years old</span>
+                    <div class="text-muted small">{{ patient.date_of_birth.strftime('%B %d, %Y') }}</div>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small d-block">Primary Contact Phone</label>
+                    <span class="fw-semibold"><i class="bi bi-telephone me-1 text-muted"></i>{{ patient.phone }}</span>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small d-block">Residential Address</label>
+                    <span><i class="bi bi-geo-alt me-1 text-muted"></i>{{ patient.address }}</span>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small d-block">Emergency Contact</label>
+                    <div class="p-2 bg-light rounded border">
+                        <i class="bi bi-telephone-plus text-danger me-1"></i>
+                        <span class="fw-semibold">{{ patient.emergency_contact }}</span>
+                    </div>
+                </div>
+                <hr>
+                <div class="text-muted small">
+                    <div>Registered: {{ patient.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                    <div>Last Updated: {{ patient.updated_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clinical Workspace / Appointments & Visits -->
+    <div class="col-lg-8">
+        <!-- Upcoming & Past Appointments -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0">
+                    <i class="bi bi-calendar-event text-primary me-2"></i>Patient Appointments
+                </h5>
+                <a href="{{ url_for('appointments.book', patient_id=patient.id) }}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-calendar-plus me-1"></i> Book Appointment
+                </a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light small">
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>Doctor</th>
+                            <th>Reason</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for apt in patient.appointments.all()|sort(attribute='scheduled_time', reverse=true) %}
+                        <tr>
+                            <td class="font-monospace small">
+                                {{ apt.scheduled_time.strftime('%Y-%m-%d %H:%M') }}
+                            </td>
+                            <td class="small">Dr. {{ apt.doctor.name }}</td>
+                            <td class="small text-truncate" style="max-width: 200px;">{{ apt.reason }}</td>
+                            <td>
+                                <span class="badge bg-light text-dark border">{{ apt.status.replace('_', ' ').capitalize() }}</span>
+                            </td>
+                            <td class="text-end">
+                                {% if apt.status in ['scheduled', 'checked_in'] %}
+                                    <a href="{{ url_for('appointments.reschedule', appointment_id=apt.id) }}" class="btn btn-sm btn-outline-secondary" title="Reschedule">
+                                        <i class="bi bi-clock-history"></i>
+                                    </a>
+                                {% endif %}
+                                {% if current_user.has_role('admin', 'doctor') and apt.status in ['checked_in', 'in_consultation'] %}
+                                    <a href="{{ url_for('consultations.new_visit', appointment_id=apt.id) }}" class="btn btn-sm btn-outline-primary" title="Consultation">
+                                        <i class="bi bi-journal-medical"></i> Consult
+                                    </a>
+                                {% endif %}
+                                {% if apt.visit %}
+                                    <a href="{{ url_for('consultations.detail', visit_id=apt.visit.id) }}" class="btn btn-sm btn-outline-info" title="View Visit">
+                                        <i class="bi bi-file-earmark-medical"></i>
+                                    </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-3 text-muted small">
+                                No appointments found for this patient.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Clinical Visit History (Authorized Clinicians Only) -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0">
+                    <i class="bi bi-journal-medical text-primary me-2"></i>Clinical Visit History & Diagnoses
+                </h5>
+                {% if current_user.has_role('admin', 'doctor') %}
+                <a href="{{ url_for('consultations.new_visit', patient_id=patient.id) }}" class="btn btn-sm btn-outline-success">
+                    <i class="bi bi-plus-lg me-1"></i> New Direct Consultation
+                </a>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if current_user.has_role('admin', 'doctor') %}
+                    {% set visits_list = patient.visits.all()|sort(attribute='start_time', reverse=true) %}
+                    {% if visits_list %}
+                        <div class="list-group list-group-flush">
+                            {% for v in visits_list %}
+                            <div class="list-group-item p-3 border rounded mb-3 bg-light bg-opacity-50">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <h6 class="fw-bold text-primary mb-1">
+                                            <i class="bi bi-clipboard2-pulse me-1"></i>{{ v.diagnosis }}
+                                        </h6>
+                                        <span class="text-muted small">
+                                            Attending: <strong>Dr. {{ v.doctor.name }}</strong> &bull;
+                                            Date: {{ v.start_time.strftime('%B %d, %Y at %H:%M') }}
+                                        </span>
+                                    </div>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('consultations.detail', visit_id=v.id) }}" class="btn btn-outline-primary">
+                                            <i class="bi bi-eye"></i> View Full Record
+                                        </a>
+                                        <a href="{{ url_for('consultations.edit', visit_id=v.id) }}" class="btn btn-outline-secondary">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="small mb-2">
+                                    <strong>Symptoms:</strong> {{ v.symptoms }}
+                                </div>
+                                {% if v.clinical_notes %}
+                                <div class="small text-muted p-2 bg-white rounded border">
+                                    <strong>Notes / Plan:</strong> {{ v.clinical_notes }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="p-4 bg-light rounded text-center border my-2">
+                            <i class="bi bi-clipboard2-pulse fs-1 text-muted d-block mb-2"></i>
+                            <h6 class="fw-bold">No Clinical Visits Recorded Yet</h6>
+                            <p class="text-muted small mb-0">Record a new consultation or complete an appointment check-in.</p>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <!-- Receptionist view: restricted clinical details -->
+                    <div class="p-4 bg-light rounded border text-center my-2">
+                        <i class="bi bi-shield-lock-fill fs-2 text-warning d-block mb-2"></i>
+                        <h6 class="fw-bold">Clinical Information Protected</h6>
+                        <p class="text-muted small mb-0">
+                            Diagnostic details and physician consultation history are restricted to authorized Doctors and Administrators. Receptionists can manage appointment bookings and lobby arrivals above.
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Archive Modal -->
+<div class="modal fade" id="archiveModal" tabindex="-1" aria-labelledby="archiveModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('patients.archive', patient_id=patient.id) }}">
+                {{ archive_form.hidden_tag() }}
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="archiveModalLabel">
+                        <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Archive Patient Record
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to archive record <strong>{{ patient.patient_code }} ({{ patient.full_name }})</strong>?</p>
+                    <div class="mb-3">
+                        {{ archive_form.archive_reason.label(class="form-label fw-semibold") }}
+                        {{ archive_form.archive_reason(class="form-control", placeholder="e.g. Relocated out of area / Transferred clinic") }}
+                    </div>
+                    <p class="text-muted small mb-0">Archived records are hidden from standard listings but remain accessible under archived filters.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    {{ archive_form.submit(class="btn btn-danger") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

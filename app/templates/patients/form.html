@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - ClinicFlow{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="card-title fw-bold mb-0">
+                        <i class="bi bi-person-vcard text-primary me-2"></i>{{ title }}
+                    </h4>
+                    {% if patient is defined and patient %}
+                        <span class="badge bg-light text-dark border font-monospace">{{ patient.patient_code }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" novalidate>
+                    {{ form.hidden_tag() }}
+
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            {{ form.full_name.label(class="form-label fw-semibold") }}
+                            {{ form.full_name(class="form-control" + (" is-invalid" if form.full_name.errors else ""), placeholder="e.g. Johnathan Doe") }}
+                            {% for error in form.full_name.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="col-md-6">
+                            {{ form.date_of_birth.label(class="form-label fw-semibold") }}
+                            {{ form.date_of_birth(class="form-control" + (" is-invalid" if form.date_of_birth.errors else ""), type="date") }}
+                            <div class="form-text">Format: YYYY-MM-DD</div>
+                            {% for error in form.date_of_birth.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="col-md-6">
+                            {{ form.phone.label(class="form-label fw-semibold") }}
+                            {{ form.phone(class="form-control" + (" is-invalid" if form.phone.errors else ""), placeholder="+1234567890") }}
+                            <div class="form-text">7 to 15 digits (e.g. +14155552671)</div>
+                            {% for error in form.phone.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="col-12">
+                            {{ form.address.label(class="form-label fw-semibold") }}
+                            {{ form.address(class="form-control" + (" is-invalid" if form.address.errors else ""), rows="3", placeholder="Street Address, City, Postal Code") }}
+                            {% for error in form.address.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="col-12">
+                            {{ form.emergency_contact.label(class="form-label fw-semibold") }}
+                            {{ form.emergency_contact(class="form-control" + (" is-invalid" if form.emergency_contact.errors else ""), placeholder="Jane Doe (Spouse) - +14155559876") }}
+                            <div class="form-text">Contact person's full name, relationship, and contact phone number</div>
+                            {% for error in form.emergency_contact.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                        <a href="{{ url_for('patients.index') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i> Cancel
+                        </a>
+                        {{ form.submit(class="btn btn-primary px-4") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

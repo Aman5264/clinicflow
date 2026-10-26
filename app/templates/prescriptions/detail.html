@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Prescription {{ prescription.prescription_number }} - ClinicFlow{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{{ url_for('patients.index') }}">Patients</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('patients.detail', patient_id=prescription.patient.id) }}">{{ prescription.patient.patient_code }}</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('consultations.detail', visit_id=prescription.visit.id) }}">Visit #{{ prescription.visit.id }}</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ prescription.prescription_number }}</li>
+            </ol>
+        </nav>
+        <h2 class="fw-bold mb-0">
+            <i class="bi bi-prescription text-primary me-2"></i>Prescription {{ prescription.prescription_number }}
+        </h2>
+    </div>
+
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('prescriptions.download_pdf', prescription_id=prescription.id) }}" class="btn btn-outline-danger" target="_blank">
+            <i class="bi bi-file-earmark-pdf me-1"></i> Print / Download PDF
+        </a>
+        {% if current_user.has_role('admin', 'doctor') %}
+        <a href="{{ url_for('prescriptions.edit', prescription_id=prescription.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-pencil me-1"></i> Amend Prescription
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0"><i class="bi bi-capsule text-danger me-2"></i>Prescribed Medications</h5>
+                <span class="badge bg-light text-dark border">{{ prescription.items|length }} Items</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>Medication & Strength</th>
+                            <th>Dosage & Route</th>
+                            <th>Frequency & Duration</th>
+                            <th>Instructions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in prescription.items %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <strong class="text-dark">{{ item.medicine_name }}</strong>
+                                <div class="text-muted small">{{ item.strength }}</div>
+                            </td>
+                            <td>
+                                <div>{{ item.dosage }}</div>
+                                <span class="badge bg-light text-dark border small">{{ item.route }}</span>
+                            </td>
+                            <td>
+                                <div>{{ item.frequency }}</div>
+                                <div class="text-muted small">Duration: {{ item.duration }}</div>
+                            </td>
+                            <td class="small text-muted">
+                                {{ item.instructions or "As directed by physician." }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if prescription.notes %}
+            <div class="card-footer bg-light p-3">
+                <strong class="small text-uppercase text-muted d-block mb-1">Physician Advice & Lifestyle Notes:</strong>
+                <div>{{ prescription.notes }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3 fw-bold">
+                <i class="bi bi-info-circle text-primary me-2"></i>Prescription Meta
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="text-muted small d-block">Prescribing Clinician</label>
+                    <span class="fw-semibold">Dr. {{ prescription.doctor.name }}</span>
+                    <span class="badge badge-role-{{ prescription.doctor.role }} ms-1">{{ prescription.doctor.role|capitalize }}</span>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small d-block">Patient</label>
+                    <a href="{{ url_for('patients.detail', patient_id=prescription.patient.id) }}" class="fw-semibold text-decoration-none">
+                        {{ prescription.patient.full_name }}
+                    </a>
+                    <div class="text-muted small font-monospace">{{ prescription.patient.patient_code }}</div>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted small d-block">Linked Consultation</label>
+                    <a href="{{ url_for('consultations.detail', visit_id=prescription.visit.id) }}" class="btn btn-sm btn-outline-primary">
+                        Visit #{{ prescription.visit.id }} ({{ prescription.visit.diagnosis[:25] }}...)
+                    </a>
+                </div>
+                <div>
+                    <label class="text-muted small d-block">Prescribed Date</label>
+                    <span class="text-muted small">{{ prescription.created_at.strftime('%Y-%m-%d %H:%M UTC') }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

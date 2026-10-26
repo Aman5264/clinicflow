@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - ClinicFlow{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="fw-bold mb-0">
+                        <i class="bi bi-journal-medical text-primary me-2"></i>{{ title }}
+                    </h4>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                        Authorized Clinician Entry
+                    </span>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <!-- Patient Context Banner -->
+                <div class="p-3 bg-light rounded border mb-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-7">
+                            <h5 class="fw-bold mb-1">{{ patient.full_name }}</h5>
+                            <span class="badge bg-light text-dark border font-monospace">{{ patient.patient_code }}</span>
+                            <span class="text-muted small ms-2">{{ patient.age }} yrs &bull; DOB: {{ patient.date_of_birth.strftime('%d %b %Y') }}</span>
+                        </div>
+                        <div class="col-md-5 text-md-end mt-2 mt-md-0">
+                            {% if appointment %}
+                                <span class="badge bg-secondary-subtle text-secondary border">
+                                    Appointment #{{ appointment.id }}
+                                </span>
+                                <div class="text-muted small">Reason: {{ appointment.reason }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <form method="POST" novalidate>
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        {{ form.symptoms.label(class="form-label fw-semibold") }}
+                        {{ form.symptoms(class="form-control" + (" is-invalid" if form.symptoms.errors else ""), rows="3", placeholder="Describe chief complaints, onset, duration, and presenting symptoms...") }}
+                        {% for error in form.symptoms.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.diagnosis.label(class="form-label fw-semibold") }}
+                        {{ form.diagnosis(class="form-control" + (" is-invalid" if form.diagnosis.errors else ""), rows="3", placeholder="Clinical assessment, differential diagnosis or primary diagnostic impression...") }}
+                        {% for error in form.diagnosis.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.clinical_notes.label(class="form-label fw-semibold") }}
+                        {{ form.clinical_notes(class="form-control" + (" is-invalid" if form.clinical_notes.errors else ""), rows="4", placeholder="Treatment plan, medications prescribed, tests ordered, or follow-up instructions...") }}
+                        {% for error in form.clinical_notes.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                        <a href="{{ url_for('patients.detail', patient_id=patient.id) }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i> Cancel
+                        </a>
+                        {{ form.submit(class="btn btn-success px-4") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

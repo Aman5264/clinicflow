@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Waiting Queue — ClinicFlow{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-end border-bottom border-dark pb-3 mb-4">
+    <div>
+        <div class="font-mono text-muted small mb-1">CLINICAL TRIAGE & LOBBY DISPATCH</div>
+        <h2 class="fw-bold mb-0 text-black font-mono">ACTIVE WAITING QUEUE</h2>
+    </div>
+    <div class="d-flex gap-2 mt-2 mt-md-0">
+        <a href="{{ url_for('appointments.index') }}" class="btn btn-outline-secondary font-mono">
+            SCHEDULE VIEW
+        </a>
+        <a href="{{ url_for('appointments.book') }}" class="btn btn-primary font-mono">
+            + INTAKE NEW APPOINTMENT
+        </a>
+    </div>
+</div>
+
+<!-- Dense Filter Bar -->
+<div class="card border-dark mb-4">
+    <div class="card-body p-2 bg-white">
+        <form method="GET" action="{{ url_for('appointments.queue') }}" class="row g-2 align-items-center">
+            <div class="col-md-5">
+                <div class="input-group">
+                    <span class="input-group-text font-mono bg-light border-dark small">CLINICIAN:</span>
+                    <select name="doctor_id" class="form-select font-mono border-dark" onchange="this.form.submit()">
+                        <option value="">ALL ASSIGNED PRACTITIONERS</option>
+                        {% for doc in doctors %}
+                            <option value="{{ doc.id }}" {% if selected_doctor_id == doc.id %}selected{% endif %}>
+                                DR. {{ doc.name|upper }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-7 text-md-end">
+                <a href="{{ url_for('appointments.queue') }}" class="btn btn-outline-secondary font-mono">
+                    REFRESH DISPATCH
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- High Density Queue Grid -->
+<div class="card border border-dark">
+    <div class="card-header bg-black text-white font-mono py-2">
+        <span>:: LIVE CALL SEQUENCE</span>
+        <span class="text-secondary font-mono small">TOTAL IN-QUEUE: {{ queue|length }}</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th style="width: 8%;">POS</th>
+                    <th style="width: 15%;">STATUS</th>
+                    <th style="width: 25%;">PATIENT IDENTIFIER & NAME</th>
+                    <th style="width: 20%;">ATTENDING PRACTITIONER</th>
+                    <th style="width: 17%;">TIME (SLOT / ARRIVAL)</th>
+                    <th style="width: 15%;" class="text-end">CLINICAL ACTION</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for apt in queue %}
+                <tr class="{% if apt.status == AppointmentStatus.IN_CONSULTATION %}table-primary border-primary{% endif %}">
+                    <td class="font-mono fw-bold fs-6">
+                        #{{ loop.index }}
+                    </td>
+                    <td>
+                        {% if apt.status == AppointmentStatus.IN_CONSULTATION %}
+                            <span class="badge bg-primary font-mono" style="font-size: 0.7rem;">[IN-CONSULTATION]</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark font-mono" style="font-size: 0.7rem;">[LOBBY-WAITING]</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="font-mono fw-bold text-black">{{ apt.patient.patient_code }}</div>
+                        <a href="{{ url_for('patients.detail', patient_id=apt.patient.id) }}" class="fw-semibold text-black text-decoration-none">
+                            {{ apt.patient.full_name }}
+                        </a>
+                        <div class="small text-muted font-mono">{{ apt.reason }}</div>
+                    </td>
+                    <td class="font-mono text-black">
+                        DR. {{ apt.doctor.name|upper }}
+                    </td>
+                    <td class="font-mono text-muted small">
+                        SLOT: {{ apt.scheduled_time.strftime('%H:%M') }}<br>
+                        {% if apt.check_in_time %}
+                            IN: {{ apt.check_in_time.strftime('%H:%M') }}
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        {% if current_user.has_role('admin', 'doctor') %}
+                            {% if apt.status == AppointmentStatus.CHECKED_IN %}
+                                <form method="POST" action="{{ url_for('appointments.transition', appointment_id=apt.id, target_status=AppointmentStatus.IN_CONSULTATION) }}" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-outline-primary font-mono py-1 px-2" style="font-size: 0.75rem;">
+                                        CALL ROOM
+                                    </button>
+                                </form>
+                            {% endif %}
+                            <a href="{{ url_for('consultations.new_visit', appointment_id=apt.id) }}" class="btn btn-primary font-mono py-1 px-2 ms-1" style="font-size: 0.75rem;">
+                                CONSULT
+                            </a>
+                        {% else %}
+                            <span class="font-mono text-muted small">[AWAITING CALL]</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center py-5 font-mono text-muted">
+                        [QUEUE CLEAR] NO PATIENTS AWAITING ATTENTION
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Account Management - ClinicFlow{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <h2 class="fw-bold mb-4"><i class="bi bi-person-gear text-primary me-2"></i>My Account</h2>
+
+        <div class="row g-4">
+            <div class="col-md-5">
+                <div class="card h-100">
+                    <div class="card-header bg-white py-3 fw-bold">
+                        <i class="bi bi-person-badge me-2"></i>Profile Information
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="text-muted small d-block">Full Name</label>
+                            <span class="fs-6 fw-semibold">{{ current_user.name }}</span>
+                        </div>
+                        <div class="mb-3">
+                            <label class="text-muted small d-block">Email Address</label>
+                            <span class="fs-6">{{ current_user.email }}</span>
+                        </div>
+                        <div class="mb-3">
+                            <label class="text-muted small d-block">Assigned Role</label>
+                            <span class="badge badge-role-{{ current_user.role }} fs-6">
+                                {{ current_user.role|capitalize }}
+                            </span>
+                        </div>
+                        <div class="mb-3">
+                            <label class="text-muted small d-block">Account Status</label>
+                            {% if current_user.is_active %}
+                                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Active</span>
+                            {% else %}
+                                <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Inactive</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-7">
+                <div class="card">
+                    <div class="card-header bg-white py-3 fw-bold">
+                        <i class="bi bi-key me-2"></i>Change Password
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="{{ url_for('auth.account') }}" novalidate>
+                            {{ password_form.hidden_tag() }}
+
+                            <div class="mb-3">
+                                {{ password_form.current_password.label(class="form-label") }}
+                                {{ password_form.current_password(class="form-control" + (" is-invalid" if password_form.current_password.errors else "")) }}
+                                {% for error in password_form.current_password.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="mb-3">
+                                {{ password_form.new_password.label(class="form-label") }}
+                                {{ password_form.new_password(class="form-control" + (" is-invalid" if password_form.new_password.errors else "")) }}
+                                <div class="form-text">Must be at least 8 characters.</div>
+                                {% for error in password_form.new_password.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="mb-3">
+                                {{ password_form.confirm_password.label(class="form-label") }}
+                                {{ password_form.confirm_password(class="form-control" + (" is-invalid" if password_form.confirm_password.errors else "")) }}
+                                {% for error in password_form.confirm_password.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="d-flex justify-content-end">
+                                {{ password_form.submit(class="btn btn-primary") }}
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

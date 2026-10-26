@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Book Appointment - ClinicFlow{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h4 class="fw-bold mb-0"><i class="bi bi-calendar-plus text-primary me-2"></i>Book New Appointment</h4>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" novalidate>
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        {{ form.patient_id.label(class="form-label fw-semibold") }}
+                        {{ form.patient_id(class="form-select" + (" is-invalid" if form.patient_id.errors else "")) }}
+                        {% for error in form.patient_id.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.doctor_id.label(class="form-label fw-semibold") }}
+                        {{ form.doctor_id(class="form-select" + (" is-invalid" if form.doctor_id.errors else "")) }}
+                        {% for error in form.doctor_id.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            {{ form.appointment_date.label(class="form-label fw-semibold") }}
+                            {{ form.appointment_date(class="form-control" + (" is-invalid" if form.appointment_date.errors else ""), type="date") }}
+                            {% for error in form.appointment_date.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.appointment_time.label(class="form-label fw-semibold") }}
+                            {{ form.appointment_time(class="form-control" + (" is-invalid" if form.appointment_time.errors else ""), placeholder="09:30") }}
+                            <div class="form-text">24-hour format: HH:MM</div>
+                            {% for error in form.appointment_time.errors %}
+                                <div class="invalid-feedback">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.duration_minutes.label(class="form-label fw-semibold") }}
+                        {{ form.duration_minutes(class="form-select" + (" is-invalid" if form.duration_minutes.errors else "")) }}
+                        {% for error in form.duration_minutes.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.reason.label(class="form-label fw-semibold") }}
+                        {{ form.reason(class="form-control" + (" is-invalid" if form.reason.errors else ""), placeholder="Chief complaint or consultation reason") }}
+                        {% for error in form.reason.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.notes.label(class="form-label fw-semibold") }}
+                        {{ form.notes(class="form-control" + (" is-invalid" if form.notes.errors else ""), rows="3", placeholder="Optional scheduling notes...") }}
+                        {% for error in form.notes.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                        <a href="{{ url_for('appointments.index') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i> Cancel
+                        </a>
+                        {{ form.submit(class="btn btn-primary px-4") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}Issue Prescription - ClinicFlow{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="fw-bold mb-0">
+                        <i class="bi bi-prescription text-primary me-2"></i>{{ title }}
+                    </h4>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                        Authorized Clinician Entry
+                    </span>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <!-- Patient & Encounter Banner -->
+                <div class="p-3 bg-light rounded border mb-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-7">
+                            <h5 class="fw-bold mb-1">{{ visit.patient.full_name }}</h5>
+                            <span class="badge bg-light text-dark border font-monospace">{{ visit.patient.patient_code }}</span>
+                            <span class="text-muted small ms-2">{{ visit.patient.age }} yrs &bull; Phone: {{ visit.patient.phone }}</span>
+                        </div>
+                        <div class="col-md-5 text-md-end mt-2 mt-md-0">
+                            <span class="badge bg-secondary-subtle text-secondary border">Visit #{{ visit.id }}</span>
+                            <div class="small text-muted text-truncate">Diagnosis: {{ visit.diagnosis }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <form method="POST" novalidate id="rxForm">
+                    {{ form.hidden_tag() }}
+
+                    <h5 class="fw-bold mb-3"><i class="bi bi-capsule text-danger me-2"></i>Prescribed Medication Items</h5>
+
+                    <div id="medicationItemsContainer">
+                        {% if prescription is defined and prescription and prescription.items %}
+                            {% for item in prescription.items %}
+                            <div class="card border mb-3 medication-row">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="badge bg-secondary">Item</span>
+                                        <button type="button" class="btn btn-sm btn-outline-danger remove-item-btn" onclick="removeItem(this)">
+                                            <i class="bi bi-trash"></i> Remove
+                                        </button>
+                                    </div>
+                                    <div class="row g-2 mb-2">
+                                        <div class="col-md-4">
+                                            <label class="form-label small fw-semibold">Medicine Name</label>
+                                            <input type="text" name="med_name[]" value="{{ item.medicine_name }}" class="form-control form-control-sm" required>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label small fw-semibold">Strength</label>
+                                            <input type="text" name="strength[]" value="{{ item.strength }}" class="form-control form-control-sm" required>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label small fw-semibold">Dosage</label>
+                                            <input type="text" name="dosage[]" value="{{ item.dosage }}" class="form-control form-control-sm" required>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label small fw-semibold">Route</label>
+                                            <select name="route[]" class="form-select form-select-sm">
+                                                <option value="Oral" {% if item.route == 'Oral' %}selected{% endif %}>Oral</option>
+                                                <option value="Inhalation" {% if item.route == 'Inhalation' %}selected{% endif %}>Inhalation</option>
+                                                <option value="Topical" {% if item.route == 'Topical' %}selected{% endif %}>Topical</option>
+                                                <option value="Sublingual" {% if item.route == 'Sublingual' %}selected{% endif %}>Sublingual</option>
+                                                <option value="Intramuscular" {% if item.route == 'Intramuscular' %}selected{% endif %}>Intramuscular</option>
+                                                <option value="Intravenous" {% if item.route == 'Intravenous' %}selected{% endif %}>Intravenous</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label small fw-semibold">Duration</label>
+                                            <input type="text" name="duration[]" value="{{ item.duration }}" class="form-control form-control-sm" required>
+                                        </div>
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-md-6">
+                                            <label class="form-label small fw-semibold">Frequency</label>
+                                            <input type="text" name="frequency[]" value="{{ item.frequency }}" class="form-control form-control-sm" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label small fw-semibold">Patient Instructions / Precautions</label>
+                                            <input type="text" name="instructions[]" value="{{ item.instructions or '' }}" class="form-control form-control-sm">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <!-- Initial Blank Row -->
+                            <div class="card border mb-3 medication-row">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="badge bg-secondary">Medication #1</span>
+                                        <button type="button" class="btn btn-sm btn-outline-danger remove-item-btn" onclick="removeItem(this)">
+                                            <i class="bi bi-trash"></i> Remove
+                                        </button>
+                                    </div>
+                                    <div class="row g-2 mb-2">
+                                        <div class="col-md-4">
+                                            <label class="form-label small fw-semibold">Medicine Name</label>
+                                            <input type="text" name="med_name[]" placeholder="e.g. Amoxicillin" class="form-control form-control-sm" required>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label small fw-semibold">Strength</label>
+                                            <input type="text" name="strength[]" placeholder="e.g. 500mg" class="form-control form-control-sm" required>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label small fw-semibold">Dosage</label>
+                                            <input type="text" name="dosage[]" placeholder="e.g. 1 capsule" class="form-control form-control-sm" required>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label small fw-semibold">Route</label>
+                                            <select name="route[]" class="form-select form-select-sm">
+                                                <option value="Oral">Oral</option>
+                                                <option value="Inhalation">Inhalation</option>
+                                                <option value="Topical">Topical</option>
+                                                <option value="Sublingual">Sublingual</option>
+                                                <option value="Intramuscular">Intramuscular</option>
+                                                <option value="Intravenous">Intravenous</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label small fw-semibold">Duration</label>
+                                            <input type="text" name="duration[]" placeholder="e.g. 7 days" class="form-control form-control-sm" required>
+                                        </div>
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-md-6">
+                                            <label class="form-label small fw-semibold">Frequency</label>
+                                            <input type="text" name="frequency[]" placeholder="e.g. Three times daily after meals" class="form-control form-control-sm" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label small fw-semibold">Patient Instructions / Precautions</label>
+                                            <input type="text" name="instructions[]" placeholder="Take with food. Complete whole course." class="form-control form-control-sm">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="addMedicationBtn">
+                            <i class="bi bi-plus-circle me-1"></i> Add Another Medicine
+                        </button>
+                    </div>
+
+                    <div class="mb-4">
+                        {{ form.notes.label(class="form-label fw-semibold") }}
+                        {{ form.notes(class="form-control", rows="3", placeholder="General physician notes, lifestyle advisories, hydration, or warnings...") }}
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                        <a href="{{ url_for('consultations.detail', visit_id=visit.id) }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i> Cancel
+                        </a>
+                        {{ form.submit(class="btn btn-success px-4") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function removeItem(btn) {
+    const container = document.getElementById('medicationItemsContainer');
+    if (container.children.length > 1) {
+        btn.closest('.medication-row').remove();
+    } else {
+        alert("A prescription must have at least one medication item.");
+    }
+}
+
+document.getElementById('addMedicationBtn').addEventListener('click', function() {
+    const container = document.getElementById('medicationItemsContainer');
+    const firstRow = container.querySelector('.medication-row');
+    const newRow = firstRow.cloneNode(true);
+
+    // Clear inputs in cloned node
+    newRow.querySelectorAll('input').forEach(input => input.value = '');
+    container.appendChild(newRow);
+});
+</script>
+{% endblock %}

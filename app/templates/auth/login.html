@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In — ClinicFlow{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-5">
+    <div class="col-sm-8 col-md-5 col-lg-4">
+        <div class="card border border-dark">
+            <div class="card-header bg-black text-white font-mono py-2">
+                <span>:: AUTHENTICATION TERMINAL</span>
+                <span class="text-secondary">v2.0</span>
+            </div>
+            
+            <div class="card-body p-4 bg-white">
+                <div class="mb-4">
+                    <h5 class="fw-bold text-black mb-1">CLINICAL ACCESS</h5>
+                    <p class="text-muted small font-mono mb-0">Authorized personnel only. Sessions are audited.</p>
+                </div>
+
+                <form method="POST" action="{{ url_for('auth.login', next=request.args.get('next')) }}" novalidate>
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        <label class="form-label font-mono">{{ form.email.label.text }}</label>
+                        {{ form.email(class="form-control font-mono" + (" is-invalid" if form.email.errors else ""), placeholder="user@clinic.local") }}
+                        {% for error in form.email.errors %}
+                            <div class="invalid-feedback font-mono">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label font-mono">{{ form.password.label.text }}</label>
+                        {{ form.password(class="form-control font-mono" + (" is-invalid" if form.password.errors else ""), placeholder="••••••••") }}
+                        {% for error in form.password.errors %}
+                            <div class="invalid-feedback font-mono">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-4 form-check">
+                        {{ form.remember(class="form-check-input") }}
+                        <label class="form-check-label font-mono small text-secondary" for="{{ form.remember.id }}">
+                            Maintain active session
+                        </label>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary font-mono py-2">
+                            AUTHENTICATE
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer bg-light border-top py-2 font-mono text-muted small text-center">
+                SECURITY LEVEL: RESTRICTED
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

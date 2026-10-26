@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+
+{% block title %}Invoice {{ invoice.invoice_number }} - ClinicFlow{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{{ url_for('billing.index') }}">Billing</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ invoice.invoice_number }}</li>
+            </ol>
+        </nav>
+        <h2 class="fw-bold mb-0">
+            <i class="bi bi-receipt text-primary me-2"></i>Invoice {{ invoice.invoice_number }}
+            {% if invoice.status == 'paid' %}
+                <span class="badge bg-success fs-6 align-middle">Paid</span>
+            {% elif invoice.status == 'partially_paid' %}
+                <span class="badge bg-warning text-dark fs-6 align-middle">Partially Paid</span>
+            {% elif invoice.status == 'unpaid' %}
+                <span class="badge bg-danger fs-6 align-middle">Unpaid</span>
+            {% elif invoice.status == 'cancelled' %}
+                <span class="badge bg-secondary fs-6 align-middle">Cancelled</span>
+            {% endif %}
+        </h2>
+    </div>
+
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('billing.invoice_pdf', invoice_id=invoice.id) }}" class="btn btn-outline-danger" target="_blank">
+            <i class="bi bi-file-earmark-pdf me-1"></i> Print / Download PDF
+        </a>
+        {% if invoice.status != 'paid' and invoice.status != 'cancelled' %}
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#paymentModal">
+            <i class="bi bi-cash-coin me-1"></i> Record Payment
+        </button>
+        {% endif %}
+        {% if invoice.status == 'unpaid' %}
+        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelModal">
+            <i class="bi bi-x-circle me-1"></i> Cancel Invoice
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+{% if invoice.status == 'cancelled' and invoice.cancellation_reason %}
+<div class="alert alert-secondary border d-flex align-items-center mb-4">
+    <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+    <div>
+        <strong>Invoice Cancelled:</strong> Reason noted: <em>"{{ invoice.cancellation_reason }}"</em>
+    </div>
+</div>
+{% endif %}
+
+<div class="row g-4">
+    <!-- Invoice Items & Payment History -->
+    <div class="col-lg-8">
+        <!-- Itemized Services Table -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3">
+                <h5 class="fw-bold mb-0"><i class="bi bi-card-checklist text-primary me-2"></i>Line Items & Services</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>Description</th>
+                            <th>Qty</th>
+                            <th>Unit Price (₹)</th>
+                            <th class="text-end">Total (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in invoice.items %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td class="fw-semibold">{{ item.description }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>₹{{ "%.2f"|format(item.unit_price) }}</td>
+                            <td class="text-end fw-bold">₹{{ "%.2f"|format(item.total_price) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <td colspan="4" class="text-end fw-semibold">Subtotal:</td>
+                            <td class="text-end fw-semibold">₹{{ "%.2f"|format(invoice.subtotal) }}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="4" class="text-end text-muted">Discount:</td>
+                            <td class="text-end text-muted">-₹{{ "%.2f"|format(invoice.discount) }}</td>
+                        </tr>
+                        <tr class="fs-6">
+                            <td colspan="4" class="text-end fw-bold">Total Invoiced:</td>
+                            <td class="text-end fw-bold">₹{{ "%.2f"|format(invoice.total_amount) }}</td>
+                        </tr>
+                        <tr class="text-success">
+                            <td colspan="4" class="text-end fw-semibold">Total Paid:</td>
+                            <td class="text-end fw-semibold">₹{{ "%.2f"|format(invoice.amount_paid) }}</td>
+                        </tr>
+                        <tr class="fs-5 {% if invoice.balance_due > 0 %}text-danger{% else %}text-muted{% endif %}">
+                            <td colspan="4" class="text-end fw-bold">Balance Due:</td>
+                            <td class="text-end fw-bold">₹{{ "%.2f"|format(invoice.balance_due) }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            {% if invoice.notes %}
+            <div class="card-footer bg-light p-3 small text-muted">
+                <strong>Billing Notes:</strong> {{ invoice.notes }}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Payment History Table -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0"><i class="bi bi-clock-history text-success me-2"></i>Posted Payments & Receipts</h6>
+                <span class="badge bg-light text-dark border">{{ invoice.payments.count() }} Payments</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 small">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Receipt #</th>
+                            <th>Date</th>
+                            <th>Method</th>
+                            <th>Reference</th>
+                            <th>Amount (₹)</th>
+                            <th class="text-end">Receipt PDF</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for payment in invoice.payments %}
+                        <tr>
+                            <td class="font-monospace fw-semibold">{{ payment.receipt_number }}</td>
+                            <td>{{ payment.payment_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ payment.payment_method.upper() }}</span></td>
+                            <td class="text-muted">{{ payment.reference or '-' }}</td>
+                            <td class="fw-bold text-success">₹{{ "%.2f"|format(payment.amount) }}</td>
+                            <td class="text-end">
+                                <a href="{{ url_for('billing.receipt_pdf', payment_id=payment.id) }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                    <i class="bi bi-file-earmark-pdf"></i> Receipt
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-3 text-muted">No payments posted yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Metadata Sidebar -->
+    <div class="col-lg-4">
+        <!-- Patient Card -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3 fw-bold">
+                <i class="bi bi-person text-primary me-2"></i>Patient Information
+            </div>
+            <div class="card-body">
+                <h5 class="fw-bold mb-1">{{ invoice.patient.full_name }}</h5>
+                <div class="font-monospace text-muted small mb-2">{{ invoice.patient.patient_code }}</div>
+                <div class="small mb-1"><strong>Phone:</strong> {{ invoice.patient.phone }}</div>
+                <div class="small mb-1"><strong>Address:</strong> {{ invoice.patient.address }}</div>
+                <a href="{{ url_for('patients.detail', patient_id=invoice.patient.id) }}" class="btn btn-sm btn-outline-secondary mt-2">
+                    View Patient Profile
+                </a>
+            </div>
+        </div>
+
+        <!-- Invoice Details -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3 fw-bold">
+                <i class="bi bi-info-circle text-primary me-2"></i>Invoice Details
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="text-muted small d-block">Created On</label>
+                    <span>{{ invoice.created_at.strftime('%Y-%m-%d %H:%M UTC') }}</span>
+                </div>
+                {% if invoice.created_by %}
+                <div class="mb-3">
+                    <label class="text-muted small d-block">Generated By</label>
+                    <span>{{ invoice.created_by.name }} ({{ invoice.created_by.role|capitalize }})</span>
+                </div>
+                {% endif %}
+                {% if invoice.visit %}
+                <div class="mb-3">
+                    <label class="text-muted small d-block">Linked Consultation</label>
+                    <a href="{{ url_for('consultations.detail', visit_id=invoice.visit.id) }}" class="btn btn-sm btn-outline-primary">
+                        Visit #{{ invoice.visit.id }}
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('billing.pay', invoice_id=invoice.id) }}">
+                {{ payment_form.hidden_tag() }}
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="paymentModalLabel">
+                        <i class="bi bi-cash-coin text-success me-2"></i>Record Payment on Invoice
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info py-2 small mb-3">
+                        <strong>Current Balance Due:</strong> ${{ "%.2f"|format(invoice.balance_due) }}
+                    </div>
+                    <div class="mb-3">
+                        {{ payment_form.amount.label(class="form-label fw-semibold") }}
+                        <input type="number" step="0.01" name="amount" value="{{ '%.2f'|format(invoice.balance_due) }}" max="{{ '%.2f'|format(invoice.balance_due) }}" min="0.01" class="form-control" required>
+                        <div class="form-text">Overpayments exceeding balance are strictly disallowed.</div>
+                    </div>
+                    <div class="mb-3">
+                        {{ payment_form.payment_method.label(class="form-label fw-semibold") }}
+                        {{ payment_form.payment_method(class="form-select") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ payment_form.reference.label(class="form-label fw-semibold") }}
+                        {{ payment_form.reference(class="form-control", placeholder="e.g. Check #1044, Stripe Ref, Card Auth Code") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ payment_form.notes.label(class="form-label fw-semibold") }}
+                        {{ payment_form.notes(class="form-control", rows="2") }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    {{ payment_form.submit(class="btn btn-success") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Modal -->
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('billing.cancel', invoice_id=invoice.id) }}">
+                {{ cancel_form.hidden_tag() }}
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="cancelModalLabel">
+                        <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Cancel Invoice
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to cancel invoice <strong>{{ invoice.invoice_number }}</strong>? This action will mark it cancelled rather than deleting audit history.</p>
+                    <div class="mb-3">
+                        {{ cancel_form.cancellation_reason.label(class="form-label fw-semibold") }}
+                        {{ cancel_form.cancellation_reason(class="form-control", placeholder="e.g. Duplicate invoice generated, billing error") }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    {{ cancel_form.submit(class="btn btn-danger") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
